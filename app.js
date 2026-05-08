@@ -3,78 +3,46 @@ class TodoApp {
         this.tasks = [];
         this.currentFilter = 'all';
         this.editingId = null;
-        this.dbName = 'TodoPWADB';
-        this.storeName = 'tasks';
         this.db = null;
         this.init();
     }
 
-    init() {
-        this.initDB().then(() => {
-            this.loadTasks();
-            this.setupEventListeners();
-            this.registerServiceWorker();
-            this.render();
-        }).catch(err => {
-            console.error('Database initialization failed:', err);
-            // Fallback to localStorage if IndexedDB fails
-            this.loadTasksFromLocalStorage();
-            this.setupEventListeners();
-            this.registerServiceWorker();
-            this.render();
-        });
+    async init() {
+        await this.initIndexedDB();
+        await this.loadTasks();
+        this.setupEventListeners();
+        this.registerServiceWorker();
+        this.render();
     }
 
-    initDB() {
+    initIndexedDB() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.dbName, 1);
+            const request = indexedDB.open('TodoPWADB', 1);
 
-            request.onerror = () => reject(request.error);
+            request.onerror = () => {
+                console.error('IndexedDB failed to open');
+                reject(request.error);
+            };
+
             request.onsuccess = () => {
                 this.db = request.result;
+                console.log('IndexedDB opened successfully');
                 resolve();
             };
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                if (!db.objectStoreNames.contains(this.storeName)) {
-                    const store = db.createObjectStore(this.storeName, { keyPath: 'id' });
-                    store.createIndex('createdAt', 'createdAt', { unique: false });
-                    store.createIndex('completed', 'completed', { unique: false });
+                
+                // Create object store if it doesn't exist
+                if (!db.objectStoreNames.contains('tasks')) {
+                    const objectStore = db.createObjectStore('tasks', { keyPath: 'id' });
+                    objectStore.createIndex('completed', 'completed', { unique: false });
+                    objectStore.createIndex('priority', 'priority', { unique: false });
+                    objectStore.createIndex('createdAt', 'createdAt', { unique: false });
+                    console.log('Object store created');
                 }
             };
         });
-    }
-
-    async loadTasks() {
-        if (!this.db) {
-            this.loadTasksFromLocalStorage();
-            return;
-        }
-
-        return new Promise((resolve) => {
-            const transaction = this.db.transaction([this.storeName], 'readonly');
-            const store = transaction.objectStore(this.storeName);
-            const request = store.getAll();
-
-            request.onsuccess = () => {
-                this.tasks = request.result.sort((a, b) => {
-                    return new Date(b.createdAt) - new Date(a.createdAt);
-                });
-                resolve();
-            };
-
-            request.onerror = () => {
-                console.error('Failed to load tasks from IndexedDB');
-                this.loadTasksFromLocalStorage();
-                resolve();
-            };
-        });
-    }
-
-    loadTasksFromLocalStorage() {
-        const saved = localStorage.getItem('tasks');
-        this.tasks = saved ? JSON.parse(saved) : [];
     }
 
     setupEventListeners() {
@@ -94,7 +62,7 @@ class TodoApp {
         });
     }
 
-    addTask() {
+    async addTask() {
         const text = document.getElementById('taskInput').value.trim();
         const date = document.getElementById('dateInput').value;
         const priority = document.getElementById('priorityInput').value;
@@ -114,7 +82,7 @@ class TodoApp {
         };
 
         this.tasks.unshift(task);
-        this.saveTask(task);
+        await this.saveTasks();
         this.render();
 
         document.getElementById('taskInput').value = '';
@@ -122,19 +90,19 @@ class TodoApp {
         document.getElementById('priorityInput').value = 'medium';
     }
 
-    deleteTask(id) {
+    async deleteTask(id) {
         if (confirm(i18n.t('deleteConfirm'))) {
             this.tasks = this.tasks.filter(task => task.id !== id);
-            this.deleteTaskFromDB(id);
+            await this.saveTasks();
             this.render();
         }
     }
 
-    toggleComplete(id) {
+    async toggleComplete(id) {
         const task = this.tasks.find(t => t.id === id);
         if (task) {
             task.completed = !task.completed;
-            this.updateTaskInDB(task);
+            await this.saveTasks();
             this.render();
         }
     }
@@ -168,7 +136,7 @@ class TodoApp {
         textInput.focus();
         textInput.select();
 
-        dialog.querySelector('.btn-save').addEventListener('click', () => {
+        dialog.querySelector('.btn-save').addEventListener('click', async () => {
             const newText = document.getElementById('editText').value.trim();
             if (!newText) {
                 alert(i18n.t('taskCannotBeEmpty'));
@@ -177,7 +145,7 @@ class TodoApp {
             task.text = newText;
             task.date = document.getElementById('editDate').value || null;
             task.priority = document.getElementById('editPriority').value;
-            this.updateTaskInDB(task);
+            await this.saveTasks();
             this.render();
             dialog.remove();
         });
@@ -253,62 +221,84 @@ class TodoApp {
         document.getElementById('taskCount').textContent = `${activeCount} ${taskWord}`;
     }
 
-    clearCompleted() {
+    async clearCompleted() {
         if (confirm(i18n.t('deleteAllConfirm'))) {
-            const completedIds = this.tasks.filter(t => t.completed).map(t => t.id);
             this.tasks = this.tasks.filter(t => !t.completed);
-            
-            completedIds.forEach(id => this.deleteTaskFromDB(id));
+            await this.saveTasks();
             this.render();
         }
     }
 
-    saveTask(task) {
-        if (!this.db) {
-            this.saveTasksToLocalStorage();
-            return;
-        }
+    saveTasks() {
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                console.error('IndexedDB not initialized');
+                reject(new Error('IndexedDB not initialized'));
+                return;
+            }
 
-        const transaction = this.db.transaction([this.storeName], 'readwrite');
-        const store = transaction.objectStore(this.storeName);
-        store.put(task);
+            const transaction = this.db.transaction(['tasks'], 'readwrite');
+            const objectStore = transaction.objectStore('tasks');
 
-        transaction.onerror = () => {
-            console.error('Failed to save task');
-            this.saveTasksToLocalStorage();
-        };
+            // Clear all existing tasks
+            objectStore.clear();
+
+            // Add all current tasks
+            this.tasks.forEach(task => {
+                objectStore.add(task);
+            });
+
+            transaction.oncomplete = () => {
+                console.log('Tasks saved to IndexedDB');
+                resolve();
+            };
+
+            transaction.onerror = () => {
+                console.error('Error saving tasks to IndexedDB');
+                reject(transaction.error);
+            };
+        });
     }
 
-    updateTaskInDB(task) {
-        if (!this.db) {
-            this.saveTasksToLocalStorage();
-            return;
-        }
+    loadTasks() {
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                console.error('IndexedDB not initialized');
+                reject(new Error('IndexedDB not initialized'));
+                return;
+            }
 
-        const transaction = this.db.transaction([this.storeName], 'readwrite');
-        const store = transaction.objectStore(this.storeName);
-        store.put(task);
+            const transaction = this.db.transaction(['tasks'], 'readonly');
+            const objectStore = transaction.objectStore('tasks');
+            const request = objectStore.getAll();
 
-        transaction.onerror = () => {
-            console.error('Failed to update task');
-            this.saveTasksToLocalStorage();
-        };
+            request.onsuccess = () => {
+                this.tasks = request.result.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+                console.log('Tasks loaded from IndexedDB:', this.tasks.length);
+                resolve();
+            };
+
+            request.onerror = () => {
+                console.error('Error loading tasks from IndexedDB');
+                reject(request.error);
+            };
+        });
     }
 
-    deleteTaskFromDB(id) {
-        if (!this.db) {
-            this.saveTasksToLocalStorage();
-            return;
-        }
-
-        const transaction = this.db.transaction([this.storeName], 'readwrite');
-        const store = transaction.objectStore(this.storeName);
-        store.delete(id);
-
-        transaction.onerror = () => {
-            console.error('Failed to delete task');
-            this.saveTasksToLocalStorage();
-        };
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
-    saveTasksToLocalStorage<span class="cursor">█</span>
+    registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {
+                console.log('Service Worker registration failed - offline features limited');
+            });
+        }
+    }
+}
+
+const app = new TodoApp();
+
