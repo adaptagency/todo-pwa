@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2196F3">
+    <meta name="description" content="A simple to-do list PWA">
+    <title>To-Do PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%232196F3' width='192' height='192'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='120' fill='white' font-family='Arial'>✓</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%232196F3' width='192' height='192'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='120' fill='white' font-family='Arial'>✓</text></svg>">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>My To-Do List</h1>
+            <p class="subtitle">Stay organized and productive</p>
+        </header>
+
+        <div class="input-section">
+            <input 
+                type="text" 
+                id="taskInput" 
+                placeholder="What needs to be done?" 
+                autocomplete="off"
+            >
+            
+            <div class="form-row">
+                <input 
+                    type="date" 
+                    id="dateInput"
+                >
+                
+                <select id="priorityInput">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+
+                <button id="addBtn" class="btn-add">Add Task</button>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="active">Active</button>
+            <button class="filter-btn" data-filter="completed">Completed</button>
+            <button class="filter-btn" data-filter="high">High Priority</button>
+        </div>
+
+        <div id="taskList" class="task-list">
+            <p class="empty-state">No tasks yet. Add one to get started!</p>
+        </div>
+
+        <footer class="stats">
+            <span id="taskCount">0 tasks</span>
+            <button id="clearBtn" class="btn-clear">Clear Completed</button>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
