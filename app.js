@@ -18,20 +18,22 @@ class TodoApp {
         await this.loadUsers();
         console.log('Users loaded:', this.users);
 
-        if (this.users.length === 0) {
-            console.log('No users found, showing modal');
-            this.showUserModal();
-        } else {
+        // Check if we have users and a valid last user
+        if (this.users.length > 0) {
             console.log('Users exist, checking for last user');
             const lastUser = await this.getLastUser();
             console.log('Last user:', lastUser);
             if (lastUser && this.users.includes(lastUser)) {
                 console.log('Loading last user:', lastUser);
                 await this.setCurrentUser(lastUser);
+                // Don't show modal - user was loaded successfully
             } else {
-                console.log('Last user not found or invalid, showing modal');
+                console.log('Last user not found or invalid, showing modal to select existing user');
                 this.showUserModal();
             }
+        } else {
+            console.log('No users found, showing modal to create first user');
+            this.showUserModal();
         }
 
         this.setupEventListeners();
