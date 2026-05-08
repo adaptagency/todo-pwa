@@ -9,31 +9,22 @@ class TodoApp {
     }
 
     async init() {
-        console.log('App initializing...');
         await this.initIndexedDB();
-        console.log('IndexedDB initialized');
         i18n.setDB(this.db);
         await i18n.init();
-        console.log('i18n initialized');
         await this.loadUsers();
-        console.log('Users loaded:', this.users);
-
-        // Check if we have users and a valid last user
-        if (this.users.length > 0) {
-            console.log('Users exist, checking for last user');
+        
+        if (this.users.length === 0) {
+            this.showUserModal();
+        } else {
             const lastUser = await this.getLastUser();
-            console.log('Last user:', lastUser);
             if (lastUser && this.users.includes(lastUser)) {
-                console.log('Loading last user:', lastUser);
                 await this.setCurrentUser(lastUser);
-                // Don't show modal - user was loaded successfully
+            } else if (this.users.length > 0) {
+                await this.setCurrentUser(this.users[0]);
             } else {
-                console.log('Last user not found or invalid, showing modal to select existing user');
                 this.showUserModal();
             }
-        } else {
-            console.log('No users found, showing modal to create first user');
-            this.showUserModal();
         }
 
         this.setupEventListeners();
@@ -42,40 +33,29 @@ class TodoApp {
 
     initIndexedDB() {
         const self = this;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve) {
             const request = indexedDB.open('TodoPWADB', 1);
 
             request.onerror = function() {
-                console.error('IndexedDB failed to open');
-                reject(request.error);
+                resolve();
             };
 
             request.onsuccess = function() {
                 self.db = request.result;
-                console.log('IndexedDB opened successfully');
                 resolve();
             };
 
             request.onupgradeneeded = function(event) {
                 const db = event.target.result;
-
                 if (!db.objectStoreNames.contains('tasks')) {
                     const objectStore = db.createObjectStore('tasks', { keyPath: 'id' });
                     objectStore.createIndex('username', 'username', { unique: false });
-                    objectStore.createIndex('completed', 'completed', { unique: false });
-                    objectStore.createIndex('priority', 'priority', { unique: false });
-                    objectStore.createIndex('createdAt', 'createdAt', { unique: false });
-                    console.log('Tasks object store created');
                 }
-
                 if (!db.objectStoreNames.contains('users')) {
                     db.createObjectStore('users', { keyPath: 'username' });
-                    console.log('Users object store created');
                 }
-
                 if (!db.objectStoreNames.contains('settings')) {
                     db.createObjectStore('settings', { keyPath: 'key' });
-                    console.log('Settings object store created');
                 }
             };
         });
@@ -109,11 +89,9 @@ class TodoApp {
         const userList = document.getElementById('userList');
         const self = this;
 
-        console.log('showUserModal called, users:', this.users);
         userList.innerHTML = '';
 
-        if (this.users && this.users.length > 0) {
-            console.log('Displaying existing users');
+        if (this.users.length > 0) {
             const heading = document.createElement('p');
             heading.style.fontSize = '12px';
             heading.style.color = '#757575';
@@ -122,16 +100,13 @@ class TodoApp {
             userList.appendChild(heading);
 
             this.users.forEach(function(username) {
-                console.log('Creating user item for:', username);
                 const userItem = document.createElement('div');
                 userItem.className = 'user-item';
                 if (self.currentUser === username) {
                     userItem.classList.add('active');
                 }
                 userItem.textContent = username;
-                userItem.style.cursor = 'pointer';
                 userItem.addEventListener('click', function() {
-                    console.log('User clicked:', username);
                     self.setCurrentUser(username);
                     self.saveLastUser(username);
                     modal.style.display = 'none';
@@ -139,7 +114,6 @@ class TodoApp {
                 userList.appendChild(userItem);
             });
         } else {
-            console.log('No users to display');
             const noUsers = document.createElement('p');
             noUsers.style.fontSize = '12px';
             noUsers.style.color = '#757575';
@@ -155,7 +129,6 @@ class TodoApp {
 
     async createNewUser() {
         const username = document.getElementById('newUsername').value.trim();
-        console.log('Creating new user:', username);
 
         if (!username) {
             alert('Please enter a username');
@@ -168,13 +141,10 @@ class TodoApp {
         }
 
         this.users.push(username);
-        console.log('User added to array, saving...');
         await this.saveUsers();
-        console.log('Users saved');
         await this.setCurrentUser(username);
         await this.saveLastUser(username);
         document.getElementById('userModal').style.display = 'none';
-        console.log('New user created and set:', username);
     }
 
     async setCurrentUser(username) {
@@ -182,146 +152,99 @@ class TodoApp {
         document.getElementById('userDisplay').textContent = 'User: ' + username;
         await this.loadTasks();
         this.render();
-        console.log('Current user set to:', username);
     }
 
     saveUsers() {
         const self = this;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve) {
             if (!self.db) {
-                console.error('IndexedDB not initialized');
-                reject(new Error('IndexedDB not initialized'));
+                resolve();
                 return;
             }
 
-            try {
-                const transaction = self.db.transaction(['users'], 'readwrite');
-                const objectStore = transaction.objectStore('users');
+            const transaction = self.db.transaction(['users'], 'readwrite');
+            const objectStore = transaction.objectStore('users');
+            objectStore.clear();
 
-                // Clear existing users first
-                const clearReq = objectStore.clear();
+            self.users.forEach(function(username) {
+                objectStore.add({ username: username });
+            });
 
-                clearReq.onsuccess = function() {
-                    console.log('Cleared existing users');
-                    // Now add new users
-                    self.users.forEach(function(username) {
-                        console.log('Adding user to IndexedDB:', username);
-                        objectStore.add({ username: username });
-                    });
-                };
+            transaction.oncomplete = function() {
+                resolve();
+            };
 
-                transaction.oncomplete = function() {
-                    console.log('Users saved to IndexedDB:', self.users);
-                    resolve();
-                };
-
-                transaction.onerror = function() {
-                    console.error('Error saving users:', transaction.error);
-                    reject(transaction.error);
-                };
-            } catch (e) {
-                console.error('Exception in saveUsers:', e);
-                reject(e);
-            }
+            transaction.onerror = function() {
+                resolve();
+            };
         });
     }
 
     loadUsers() {
         const self = this;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve) {
             if (!self.db) {
-                console.error('IndexedDB not initialized');
-                self.users = [];
                 resolve();
                 return;
             }
 
-            try {
-                const transaction = self.db.transaction(['users'], 'readonly');
-                const objectStore = transaction.objectStore('users');
-                const request = objectStore.getAll();
+            const transaction = self.db.transaction(['users'], 'readonly');
+            const objectStore = transaction.objectStore('users');
+            const request = objectStore.getAll();
 
-                request.onsuccess = function() {
-                    self.users = request.result.map(function(item) { return item.username; });
-                    console.log('Users loaded from IndexedDB:', self.users);
-                    resolve();
-                };
+            request.onsuccess = function() {
+                self.users = request.result.map(function(item) { return item.username; });
+                resolve();
+            };
 
-                request.onerror = function() {
-                    console.error('Error loading users:', request.error);
-                    self.users = [];
-                    resolve();
-                };
-            } catch (e) {
-                console.error('Exception in loadUsers:', e);
+            request.onerror = function() {
                 self.users = [];
                 resolve();
-            }
+            };
         });
     }
 
     saveLastUser(username) {
         const self = this;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve) {
             if (!self.db) {
-                console.error('IndexedDB not initialized');
                 resolve();
                 return;
             }
 
-            try {
-                const transaction = self.db.transaction(['settings'], 'readwrite');
-                const objectStore = transaction.objectStore('settings');
-                const request = objectStore.put({ key: 'lastUser', value: username });
+            const transaction = self.db.transaction(['settings'], 'readwrite');
+            const objectStore = transaction.objectStore('settings');
+            objectStore.put({ key: 'lastUser', value: username });
 
-                request.onsuccess = function() {
-                    console.log('Last user saved:', username);
-                    resolve();
-                };
-
-                request.onerror = function() {
-                    console.error('Error saving last user:', request.error);
-                    resolve();
-                };
-            } catch (e) {
-                console.error('Exception in saveLastUser:', e);
+            transaction.oncomplete = function() {
                 resolve();
-            }
+            };
+
+            transaction.onerror = function() {
+                resolve();
+            };
         });
     }
 
     getLastUser() {
         const self = this;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve) {
             if (!self.db) {
-                console.error('IndexedDB not initialized');
                 resolve(null);
                 return;
             }
 
-            try {
-                const transaction = self.db.transaction(['settings'], 'readonly');
-                const objectStore = transaction.objectStore('settings');
-                const request = objectStore.get('lastUser');
+            const transaction = self.db.transaction(['settings'], 'readonly');
+            const objectStore = transaction.objectStore('settings');
+            const request = objectStore.get('lastUser');
 
-                request.onsuccess = function() {
-                    if (request.result) {
-                        console.log('Last user retrieved:', request.result.value);
-                        resolve(request.result.value);
-                    } else {
-                        console.log('No last user found');
-                        resolve(null);
-                    }
-                };
+            request.onsuccess = function() {
+                resolve(request.result ? request.result.value : null);
+            };
 
-                request.onerror = function() {
-                    console.error('Error getting last user:', request.error);
-                    resolve(null);
-                };
-            } catch (e) {
-                console.error('Exception in getLastUser:', e);
+            request.onerror = function() {
                 resolve(null);
-            }
+            };
         });
     }
 
@@ -378,7 +301,7 @@ class TodoApp {
 
         const dialog = document.createElement('div');
         dialog.className = 'edit-modal';
-        dialog.innerHTML = '<div class="edit-dialog"><h2>' + i18n.t('editTitle') + '</h2><input type="text" id="editText" value="' + this.escapeHtml(task.text) + '" placeholder="' + i18n.t('taskPlaceholder') + '"><input type="date" id="editDate" value="' + (task.date || '') + '"><select id="editPriority"><option value="low" ' + (task.priority === 'low' ? 'selected' : '') + '>' + i18n.t('lowPriority') + '</option><option value="medium" ' + (task.priority === 'medium' ? 'selected' : '') + '>' + i18n.t('mediumPriority') + '</option><option value="high" ' + (task.priority === 'high' ? 'selected' : '') + '>' + i18n.t('highPriority') + '</option></select><div class="dialog-buttons"><button class="btn-save">' + i18n.t('saveBtn') + '</button><button class="btn-cancel">' + i18n.t('cancelBtn') + '</button></div></div>';
+        dialog.innerHTML = '<div class="edit-dialog"><h2>' + i18n.t('editTitle') + '</h2><input type="text" id="editText" value="' + this.escapeHtml(task.text) + '"><input type="date" id="editDate" value="' + (task.date || '') + '"><select id="editPriority"><option value="low" ' + (task.priority === 'low' ? 'selected' : '') + '>' + i18n.t('lowPriority') + '</option><option value="medium" ' + (task.priority === 'medium' ? 'selected' : '') + '>' + i18n.t('mediumPriority') + '</option><option value="high" ' + (task.priority === 'high' ? 'selected' : '') + '>' + i18n.t('highPriority') + '</option></select><div class="dialog-buttons"><button class="btn-save">' + i18n.t('saveBtn') + '</button><button class="btn-cancel">' + i18n.t('cancelBtn') + '</button></div></div>';
 
         document.body.appendChild(dialog);
 
@@ -410,7 +333,6 @@ class TodoApp {
     }
 
     getFilteredTasks() {
-        const self = this;
         switch (this.currentFilter) {
             case 'completed':
                 return this.tasks.filter(function(t) { return t.completed; });
@@ -465,81 +387,65 @@ class TodoApp {
 
     saveTasks() {
         const self = this;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve) {
             if (!self.db) {
-                console.error('IndexedDB not initialized');
-                reject(new Error('IndexedDB not initialized'));
+                resolve();
                 return;
             }
 
-            try {
-                const transaction = self.db.transaction(['tasks'], 'readwrite');
-                const objectStore = transaction.objectStore('tasks');
-                const index = objectStore.index('username');
-                const range = IDBKeyRange.only(self.currentUser);
+            const transaction = self.db.transaction(['tasks'], 'readwrite');
+            const objectStore = transaction.objectStore('tasks');
+            const index = objectStore.index('username');
+            const range = IDBKeyRange.only(self.currentUser);
 
-                index.openCursor(range).onsuccess = function(event) {
-                    const cursor = event.target.result;
-                    if (cursor) {
-                        objectStore.delete(cursor.primaryKey);
-                        cursor.continue();
-                    }
-                };
+            index.openCursor(range).onsuccess = function(event) {
+                const cursor = event.target.result;
+                if (cursor) {
+                    objectStore.delete(cursor.primaryKey);
+                    cursor.continue();
+                }
+            };
 
-                setTimeout(function() {
-                    self.tasks.forEach(function(task) {
-                        objectStore.add(task);
-                    });
-                }, 100);
+            setTimeout(function() {
+                self.tasks.forEach(function(task) {
+                    objectStore.add(task);
+                });
+            }, 50);
 
-                transaction.oncomplete = function() {
-                    console.log('Tasks saved to IndexedDB for user:', self.currentUser);
-                    resolve();
-                };
+            transaction.oncomplete = function() {
+                resolve();
+            };
 
-                transaction.onerror = function() {
-                    console.error('Error saving tasks to IndexedDB');
-                    reject(transaction.error);
-                };
-            } catch (e) {
-                console.error('Exception in saveTasks:', e);
-                reject(e);
-            }
+            transaction.onerror = function() {
+                resolve();
+            };
         });
     }
 
     loadTasks() {
         const self = this;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve) {
             if (!self.db || !self.currentUser) {
                 self.tasks = [];
                 resolve();
                 return;
             }
 
-            try {
-                const transaction = self.db.transaction(['tasks'], 'readonly');
-                const objectStore = transaction.objectStore('tasks');
-                const index = objectStore.index('username');
-                const range = IDBKeyRange.only(self.currentUser);
-                const request = index.getAll(range);
+            const transaction = self.db.transaction(['tasks'], 'readonly');
+            const objectStore = transaction.objectStore('tasks');
+            const index = objectStore.index('username');
+            const range = IDBKeyRange.only(self.currentUser);
+            const request = index.getAll(range);
 
-                request.onsuccess = function() {
-                    self.tasks = request.result.sort(function(a, b) { return b.createdAt.localeCompare(a.createdAt); });
-                    console.log('Tasks loaded from IndexedDB for user:', self.currentUser, self.tasks.length);
-                    resolve();
-                };
+            request.onsuccess = function() {
+                self.tasks = request.result.sort(function(a, b) { return b.createdAt.localeCompare(a.createdAt); });
+                resolve();
+            };
 
-                request.onerror = function() {
-                    console.error('Error loading tasks from IndexedDB');
-                    self.tasks = [];
-                    resolve();
-                };
-            } catch (e) {
-                console.error('Exception in loadTasks:', e);
+            request.onerror = function() {
                 self.tasks = [];
                 resolve();
-            }
+            };
         });
     }
 
@@ -551,9 +457,7 @@ class TodoApp {
 
     registerServiceWorker() {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(function() {
-                console.log('Service Worker registration failed - offline features limited');
-            });
+            navigator.serviceWorker.register('sw.js').catch(function() {});
         }
     }
 }
