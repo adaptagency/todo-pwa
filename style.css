@@ -1,4 +1,4 @@
-﻿* {
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -42,18 +42,56 @@ header {
     background: linear-gradient(135deg, var(--primary) 0%, #1976D2 100%);
     color: white;
     padding: 30px 20px;
-    text-align: center;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 16px;
 }
 
 header h1 {
     font-size: 32px;
-    margin-bottom: 8px;
     font-weight: 700;
+    flex: 1;
+}
+
+.language-toggle {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.lang-btn {
+    padding: 8px 12px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    background: transparent;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+
+.lang-btn:hover {
+    border-color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.lang-btn.active {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: white;
 }
 
 .subtitle {
     font-size: 14px;
     opacity: 0.9;
+    text-align: center;
 }
 
 .input-section {
@@ -424,8 +462,18 @@ header h1 {
 }
 
 @media (max-width: 480px) {
+    .header-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
     header h1 {
         font-size: 24px;
+    }
+
+    .language-toggle {
+        justify-content: flex-start;
+        width: 100%;
     }
 
     .form-row {
@@ -452,3 +500,4 @@ header h1 {
         gap: 12px;
     }
 }
+

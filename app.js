@@ -1,4 +1,4 @@
-﻿class TodoApp {
+class TodoApp {
     constructor() {
         this.tasks = [];
         this.currentFilter = 'all';
@@ -36,7 +36,7 @@
         const priority = document.getElementById('priorityInput').value;
 
         if (!text) {
-            alert('Please enter a task');
+            alert(i18n.t('enterTask'));
             return;
         }
 
@@ -59,7 +59,7 @@
     }
 
     deleteTask(id) {
-        if (confirm('Delete this task?')) {
+        if (confirm(i18n.t('deleteConfirm'))) {
             this.tasks = this.tasks.filter(task => task.id !== id);
             this.saveTasks();
             this.render();
@@ -83,17 +83,17 @@
         dialog.className = 'edit-modal';
         dialog.innerHTML = `
             <div class="edit-dialog">
-                <h2>Edit Task</h2>
-                <input type="text" id="editText" value="${task.text}" placeholder="Task description">
+                <h2>${i18n.t('editTitle')}</h2>
+                <input type="text" id="editText" value="${this.escapeHtml(task.text)}" placeholder="${i18n.t('taskPlaceholder')}">
                 <input type="date" id="editDate" value="${task.date || ''}">
                 <select id="editPriority">
-                    <option value="low" ${task.priority === 'low' ? 'selected' : ''}>Low</option>
-                    <option value="medium" ${task.priority === 'medium' ? 'selected' : ''}>Medium</option>
-                    <option value="high" ${task.priority === 'high' ? 'selected' : ''}>High</option>
+                    <option value="low" ${task.priority === 'low' ? 'selected' : ''}>${i18n.t('lowPriority')}</option>
+                    <option value="medium" ${task.priority === 'medium' ? 'selected' : ''}>${i18n.t('mediumPriority')}</option>
+                    <option value="high" ${task.priority === 'high' ? 'selected' : ''}>${i18n.t('highPriority')}</option>
                 </select>
                 <div class="dialog-buttons">
-                    <button class="btn-save">Save</button>
-                    <button class="btn-cancel">Cancel</button>
+                    <button class="btn-save">${i18n.t('saveBtn')}</button>
+                    <button class="btn-cancel">${i18n.t('cancelBtn')}</button>
                 </div>
             </div>
         `;
@@ -107,7 +107,7 @@
         dialog.querySelector('.btn-save').addEventListener('click', () => {
             const newText = document.getElementById('editText').value.trim();
             if (!newText) {
-                alert('Task cannot be empty');
+                alert(i18n.t('taskCannotBeEmpty'));
                 return;
             }
             task.text = newText;
@@ -147,8 +147,8 @@
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        if (date.toDateString() === today.toDateString()) return '📅 Today';
-        if (date.toDateString() === tomorrow.toDateString()) return '📅 Tomorrow';
+        if (date.toDateString() === today.toDateString()) return `📅 ${i18n.t('today')}`;
+        if (date.toDateString() === tomorrow.toDateString()) return `📅 ${i18n.t('tomorrow')}`;
         return `📅 ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     }
 
@@ -157,8 +157,8 @@
         const filtered = this.getFilteredTasks();
 
         if (filtered.length === 0) {
-            taskList.innerHTML = '<p class="empty-state">No tasks to show</p>';
-            document.getElementById('taskCount').textContent = '0 tasks';
+            taskList.innerHTML = `<p class="empty-state">${i18n.t('noTasksToShow')}</p>`;
+            document.getElementById('taskCount').textContent = `0 ${i18n.t('tasks')}`;
             return;
         }
 
@@ -173,23 +173,24 @@
                 <div class="task-content">
                     <div class="task-text">${this.escapeHtml(task.text)}</div>
                     <div class="task-meta">
-                        <span class="priority-badge ${task.priority}">${task.priority}</span>
+                        <span class="priority-badge ${task.priority}">${i18n.t(task.priority + 'Priority')}</span>
                         ${task.date ? `<span class="task-date">${this.formatDate(task.date)}</span>` : ''}
                     </div>
                 </div>
                 <div class="task-actions">
-                    <button class="btn-edit" onclick="app.editTask(${task.id})">Edit</button>
-                    <button class="btn-delete" onclick="app.deleteTask(${task.id})">Delete</button>
+                    <button class="btn-edit" onclick="app.editTask(${task.id})">${i18n.t('editBtn')}</button>
+                    <button class="btn-delete" onclick="app.deleteTask(${task.id})">${i18n.t('deleteBtn')}</button>
                 </div>
             </div>
         `).join('');
 
         const activeCount = this.tasks.filter(t => !t.completed).length;
-        document.getElementById('taskCount').textContent = `${activeCount} ${activeCount === 1 ? 'task' : 'tasks'}`;
+        const taskWord = activeCount === 1 ? i18n.t('task') : i18n.t('taskCount');
+        document.getElementById('taskCount').textContent = `${activeCount} ${taskWord}`;
     }
 
     clearCompleted() {
-        if (confirm('Delete all completed tasks?')) {
+        if (confirm(i18n.t('deleteAllConfirm'))) {
             this.tasks = this.tasks.filter(t => !t.completed);
             this.saveTasks();
             this.render();
@@ -221,3 +222,4 @@
 }
 
 const app = new TodoApp();
+
