@@ -30,21 +30,22 @@ class TodoApp {
     }
 
     initIndexedDB() {
-        return new Promise((resolve, reject) => {
+        const self = this;
+        return new Promise(function(resolve, reject) {
             const request = indexedDB.open('TodoPWADB', 1);
 
-            request.onerror = () => {
+            request.onerror = function() {
                 console.error('IndexedDB failed to open');
                 reject(request.error);
             };
 
-            request.onsuccess = () => {
-                this.db = request.result;
+            request.onsuccess = function() {
+                self.db = request.result;
                 console.log('IndexedDB opened successfully');
                 resolve();
             };
 
-            request.onupgradeneeded = (event) => {
+            request.onupgradeneeded = function(event) {
                 const db = event.target.result;
 
                 if (!db.objectStoreNames.contains('tasks')) {
@@ -70,23 +71,24 @@ class TodoApp {
     }
 
     setupEventListeners() {
-        document.getElementById('addBtn').addEventListener('click', () => this.addTask());
-        document.getElementById('taskInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.addTask();
+        const self = this;
+        document.getElementById('addBtn').addEventListener('click', function() { self.addTask(); });
+        document.getElementById('taskInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') self.addTask();
         });
-        document.getElementById('clearBtn').addEventListener('click', () => this.clearCompleted());
-        document.getElementById('switchUserBtn').addEventListener('click', () => this.showUserModal());
-        document.getElementById('createUserBtn').addEventListener('click', () => this.createNewUser());
-        document.getElementById('newUsername').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.createNewUser();
+        document.getElementById('clearBtn').addEventListener('click', function() { self.clearCompleted(); });
+        document.getElementById('switchUserBtn').addEventListener('click', function() { self.showUserModal(); });
+        document.getElementById('createUserBtn').addEventListener('click', function() { self.createNewUser(); });
+        document.getElementById('newUsername').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') self.createNewUser();
         });
 
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.filter-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
                 e.target.classList.add('active');
-                this.currentFilter = e.target.dataset.filter;
-                this.render();
+                self.currentFilter = e.target.dataset.filter;
+                self.render();
             });
         });
     }
@@ -94,24 +96,40 @@ class TodoApp {
     showUserModal() {
         const modal = document.getElementById('userModal');
         const userList = document.getElementById('userList');
+        const self = this;
 
         userList.innerHTML = '';
 
         if (this.users.length > 0) {
-            this.users.forEach(username => {
+            const heading = document.createElement('p');
+            heading.style.fontSize = '12px';
+            heading.style.color = '#757575';
+            heading.style.marginBottom = '10px';
+            heading.textContent = 'Existing Profiles:';
+            userList.appendChild(heading);
+
+            this.users.forEach(function(username) {
                 const userItem = document.createElement('div');
                 userItem.className = 'user-item';
-                if (this.currentUser === username) {
+                if (self.currentUser === username) {
                     userItem.classList.add('active');
                 }
                 userItem.textContent = username;
-                userItem.addEventListener('click', async () => {
-                    await this.setCurrentUser(username);
-                    await this.saveLastUser(username);
+                userItem.style.cursor = 'pointer';
+                userItem.addEventListener('click', function() {
+                    self.setCurrentUser(username);
+                    self.saveLastUser(username);
                     modal.style.display = 'none';
                 });
                 userList.appendChild(userItem);
             });
+        } else {
+            const noUsers = document.createElement('p');
+            noUsers.style.fontSize = '12px';
+            noUsers.style.color = '#757575';
+            noUsers.style.marginBottom = '10px';
+            noUsers.textContent = 'No existing profiles. Create one below:';
+            userList.appendChild(noUsers);
         }
 
         document.getElementById('newUsername').value = '';
@@ -148,28 +166,29 @@ class TodoApp {
     }
 
     saveUsers() {
-        return new Promise((resolve, reject) => {
-            if (!this.db) {
+        const self = this;
+        return new Promise(function(resolve, reject) {
+            if (!self.db) {
                 console.error('IndexedDB not initialized');
                 reject(new Error('IndexedDB not initialized'));
                 return;
             }
 
-            const transaction = this.db.transaction(['users'], 'readwrite');
+            const transaction = self.db.transaction(['users'], 'readwrite');
             const objectStore = transaction.objectStore('users');
 
             objectStore.clear();
 
-            this.users.forEach(username => {
-                objectStore.add({ username });
+            self.users.forEach(function(username) {
+                objectStore.add({ username: username });
             });
 
-            transaction.oncomplete = () => {
-                console.log('Users saved to IndexedDB:', this.users);
+            transaction.oncomplete = function() {
+                console.log('Users saved to IndexedDB:', self.users);
                 resolve();
             };
 
-            transaction.onerror = () => {
+            transaction.onerror = function() {
                 console.error('Error saving users:', transaction.error);
                 reject(transaction.error);
             };
@@ -177,24 +196,25 @@ class TodoApp {
     }
 
     loadUsers() {
-        return new Promise((resolve, reject) => {
-            if (!this.db) {
+        const self = this;
+        return new Promise(function(resolve, reject) {
+            if (!self.db) {
                 console.error('IndexedDB not initialized');
                 reject(new Error('IndexedDB not initialized'));
                 return;
             }
 
-            const transaction = this.db.transaction(['users'], 'readonly');
+            const transaction = self.db.transaction(['users'], 'readonly');
             const objectStore = transaction.objectStore('users');
             const request = objectStore.getAll();
 
-            request.onsuccess = () => {
-                this.users = request.result.map(item => item.username);
-                console.log('Users loaded from IndexedDB:', this.users);
+            request.onsuccess = function() {
+                self.users = request.result.map(function(item) { return item.username; });
+                console.log('Users loaded from IndexedDB:', self.users);
                 resolve();
             };
 
-            request.onerror = () => {
+            request.onerror = function() {
                 console.error('Error loading users:', request.error);
                 reject(request.error);
             };
@@ -202,23 +222,24 @@ class TodoApp {
     }
 
     saveLastUser(username) {
-        return new Promise((resolve, reject) => {
-            if (!this.db) {
+        const self = this;
+        return new Promise(function(resolve, reject) {
+            if (!self.db) {
                 console.error('IndexedDB not initialized');
                 reject(new Error('IndexedDB not initialized'));
                 return;
             }
 
-            const transaction = this.db.transaction(['settings'], 'readwrite');
+            const transaction = self.db.transaction(['settings'], 'readwrite');
             const objectStore = transaction.objectStore('settings');
             const request = objectStore.put({ key: 'lastUser', value: username });
 
-            request.onsuccess = () => {
+            request.onsuccess = function() {
                 console.log('Last user saved:', username);
                 resolve();
             };
 
-            request.onerror = () => {
+            request.onerror = function() {
                 console.error('Error saving last user:', request.error);
                 reject(request.error);
             };
@@ -226,18 +247,19 @@ class TodoApp {
     }
 
     getLastUser() {
-        return new Promise((resolve, reject) => {
-            if (!this.db) {
+        const self = this;
+        return new Promise(function(resolve, reject) {
+            if (!self.db) {
                 console.error('IndexedDB not initialized');
                 resolve(null);
                 return;
             }
 
-            const transaction = this.db.transaction(['settings'], 'readonly');
+            const transaction = self.db.transaction(['settings'], 'readonly');
             const objectStore = transaction.objectStore('settings');
             const request = objectStore.get('lastUser');
 
-            request.onsuccess = () => {
+            request.onsuccess = function() {
                 if (request.result) {
                     console.log('Last user retrieved:', request.result.value);
                     resolve(request.result.value);
@@ -246,7 +268,7 @@ class TodoApp {
                 }
             };
 
-            request.onerror = () => {
+            request.onerror = function() {
                 console.error('Error getting last user:', request.error);
                 resolve(null);
             };
@@ -266,9 +288,9 @@ class TodoApp {
         const task = {
             id: Date.now(),
             username: this.currentUser,
-            text,
+            text: text,
             date: date || null,
-            priority,
+            priority: priority,
             completed: false,
             createdAt: new Date().toISOString()
         };
@@ -284,14 +306,14 @@ class TodoApp {
 
     async deleteTask(id) {
         if (confirm(i18n.t('deleteConfirm'))) {
-            this.tasks = this.tasks.filter(task => task.id !== id);
+            this.tasks = this.tasks.filter(function(task) { return task.id !== id; });
             await this.saveTasks();
             this.render();
         }
     }
 
     async toggleComplete(id) {
-        const task = this.tasks.find(t => t.id === id);
+        const task = this.tasks.find(function(t) { return t.id === id; });
         if (task) {
             task.completed = !task.completed;
             await this.saveTasks();
@@ -300,7 +322,8 @@ class TodoApp {
     }
 
     editTask(id) {
-        const task = this.tasks.find(t => t.id === id);
+        const self = this;
+        const task = this.tasks.find(function(t) { return t.id === id; });
         if (!task) return;
 
         const dialog = document.createElement('div');
@@ -313,7 +336,7 @@ class TodoApp {
         textInput.focus();
         textInput.select();
 
-        dialog.querySelector('.btn-save').addEventListener('click', async () => {
+        dialog.querySelector('.btn-save').addEventListener('click', function() {
             const newText = document.getElementById('editText').value.trim();
             if (!newText) {
                 alert(i18n.t('taskCannotBeEmpty'));
@@ -322,28 +345,29 @@ class TodoApp {
             task.text = newText;
             task.date = document.getElementById('editDate').value || null;
             task.priority = document.getElementById('editPriority').value;
-            await this.saveTasks();
-            this.render();
+            self.saveTasks();
+            self.render();
             dialog.remove();
         });
 
-        dialog.querySelector('.btn-cancel').addEventListener('click', () => {
+        dialog.querySelector('.btn-cancel').addEventListener('click', function() {
             dialog.remove();
         });
 
-        dialog.addEventListener('click', (e) => {
+        dialog.addEventListener('click', function(e) {
             if (e.target === dialog) dialog.remove();
         });
     }
 
     getFilteredTasks() {
+        const self = this;
         switch (this.currentFilter) {
             case 'completed':
-                return this.tasks.filter(t => t.completed);
+                return this.tasks.filter(function(t) { return t.completed; });
             case 'active':
-                return this.tasks.filter(t => !t.completed);
+                return this.tasks.filter(function(t) { return !t.completed; });
             case 'high':
-                return this.tasks.filter(t => t.priority === 'high' && !t.completed);
+                return this.tasks.filter(function(t) { return t.priority === 'high' && !t.completed; });
             default:
                 return this.tasks;
         }
@@ -364,6 +388,7 @@ class TodoApp {
     render() {
         const taskList = document.getElementById('taskList');
         const filtered = this.getFilteredTasks();
+        const self = this;
 
         if (filtered.length === 0) {
             taskList.innerHTML = '<p class="empty-state">' + i18n.t('noTasksToShow') + '</p>';
@@ -371,35 +396,38 @@ class TodoApp {
             return;
         }
 
-        taskList.innerHTML = filtered.map(task => '<div class="task-item ' + (task.completed ? 'completed' : '') + '"><input type="checkbox" class="task-checkbox" ' + (task.completed ? 'checked' : '') + ' onchange="app.toggleComplete(' + task.id + ')"><div class="task-content"><div class="task-text">' + this.escapeHtml(task.text) + '</div><div class="task-meta"><span class="priority-badge ' + task.priority + '">' + i18n.t(task.priority + 'Priority') + '</span>' + (task.date ? '<span class="task-date">' + this.formatDate(task.date) + '</span>' : '') + '</div></div><div class="task-actions"><button class="btn-edit" onclick="app.editTask(' + task.id + ')">' + i18n.t('editBtn') + '</button><button class="btn-delete" onclick="app.deleteTask(' + task.id + ')">' + i18n.t('deleteBtn') + '</button></div></div>').join('');
+        taskList.innerHTML = filtered.map(function(task) {
+            return '<div class="task-item ' + (task.completed ? 'completed' : '') + '"><input type="checkbox" class="task-checkbox" ' + (task.completed ? 'checked' : '') + ' onchange="app.toggleComplete(' + task.id + ')"><div class="task-content"><div class="task-text">' + self.escapeHtml(task.text) + '</div><div class="task-meta"><span class="priority-badge ' + task.priority + '">' + i18n.t(task.priority + 'Priority') + '</span>' + (task.date ? '<span class="task-date">' + self.formatDate(task.date) + '</span>' : '') + '</div></div><div class="task-actions"><button class="btn-edit" onclick="app.editTask(' + task.id + ')">' + i18n.t('editBtn') + '</button><button class="btn-delete" onclick="app.deleteTask(' + task.id + ')">' + i18n.t('deleteBtn') + '</button></div></div>';
+        }).join('');
 
-        const activeCount = this.tasks.filter(t => !t.completed).length;
+        const activeCount = this.tasks.filter(function(t) { return !t.completed; }).length;
         const taskWord = activeCount === 1 ? i18n.t('task') : i18n.t('taskCount');
         document.getElementById('taskCount').textContent = activeCount + ' ' + taskWord;
     }
 
     async clearCompleted() {
         if (confirm(i18n.t('deleteAllConfirm'))) {
-            this.tasks = this.tasks.filter(t => !t.completed);
+            this.tasks = this.tasks.filter(function(t) { return !t.completed; });
             await this.saveTasks();
             this.render();
         }
     }
 
     saveTasks() {
-        return new Promise((resolve, reject) => {
-            if (!this.db) {
+        const self = this;
+        return new Promise(function(resolve, reject) {
+            if (!self.db) {
                 console.error('IndexedDB not initialized');
                 reject(new Error('IndexedDB not initialized'));
                 return;
             }
 
-            const transaction = this.db.transaction(['tasks'], 'readwrite');
+            const transaction = self.db.transaction(['tasks'], 'readwrite');
             const objectStore = transaction.objectStore('tasks');
             const index = objectStore.index('username');
-            const range = IDBKeyRange.only(this.currentUser);
+            const range = IDBKeyRange.only(self.currentUser);
 
-            index.openCursor(range).onsuccess = (event) => {
+            index.openCursor(range).onsuccess = function(event) {
                 const cursor = event.target.result;
                 if (cursor) {
                     objectStore.delete(cursor.primaryKey);
@@ -407,18 +435,18 @@ class TodoApp {
                 }
             };
 
-            setTimeout(() => {
-                this.tasks.forEach(task => {
+            setTimeout(function() {
+                self.tasks.forEach(function(task) {
                     objectStore.add(task);
                 });
             }, 100);
 
-            transaction.oncomplete = () => {
-                console.log('Tasks saved to IndexedDB for user:', this.currentUser);
+            transaction.oncomplete = function() {
+                console.log('Tasks saved to IndexedDB for user:', self.currentUser);
                 resolve();
             };
 
-            transaction.onerror = () => {
+            transaction.onerror = function() {
                 console.error('Error saving tasks to IndexedDB');
                 reject(transaction.error);
             };
@@ -426,28 +454,29 @@ class TodoApp {
     }
 
     loadTasks() {
-        return new Promise((resolve, reject) => {
-            if (!this.db || !this.currentUser) {
-                this.tasks = [];
+        const self = this;
+        return new Promise(function(resolve, reject) {
+            if (!self.db || !self.currentUser) {
+                self.tasks = [];
                 resolve();
                 return;
             }
 
-            const transaction = this.db.transaction(['tasks'], 'readonly');
+            const transaction = self.db.transaction(['tasks'], 'readonly');
             const objectStore = transaction.objectStore('tasks');
             const index = objectStore.index('username');
-            const range = IDBKeyRange.only(this.currentUser);
+            const range = IDBKeyRange.only(self.currentUser);
             const request = index.getAll(range);
 
-            request.onsuccess = () => {
-                this.tasks = request.result.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-                console.log('Tasks loaded from IndexedDB for user:', this.currentUser, this.tasks.length);
+            request.onsuccess = function() {
+                self.tasks = request.result.sort(function(a, b) { return b.createdAt.localeCompare(a.createdAt); });
+                console.log('Tasks loaded from IndexedDB for user:', self.currentUser, self.tasks.length);
                 resolve();
             };
 
-            request.onerror = () => {
+            request.onerror = function() {
                 console.error('Error loading tasks from IndexedDB');
-                this.tasks = [];
+                self.tasks = [];
                 resolve();
             };
         });
@@ -461,7 +490,7 @@ class TodoApp {
 
     registerServiceWorker() {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {
+            navigator.serviceWorker.register('sw.js').catch(function() {
                 console.log('Service Worker registration failed - offline features limited');
             });
         }

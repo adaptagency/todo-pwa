@@ -127,7 +127,7 @@ class I18n {
         document.querySelectorAll('.lang-btn').forEach(btn => {
             btn.classList.remove('active');
         });
-        const activeBtn = document.querySelector(`[data-lang="${lang}"]`);
+        const activeBtn = document.querySelector('[data-lang="' + lang + '"]');
         if (activeBtn) {
             activeBtn.classList.add('active');
         }
@@ -145,7 +145,7 @@ class I18n {
     }
 
     saveLanguage(lang) {
-        return new Promise((resolve, reject) => {
+        return new Promise(function(resolve, reject) {
             if (!this.db) {
                 console.log('Database not ready, skipping language save');
                 resolve();
@@ -157,12 +157,12 @@ class I18n {
                 const objectStore = transaction.objectStore('settings');
                 const request = objectStore.put({ key: 'language', value: lang });
 
-                request.onsuccess = () => {
+                request.onsuccess = function() {
                     console.log('Language saved to IndexedDB:', lang);
                     resolve();
                 };
 
-                request.onerror = () => {
+                request.onerror = function() {
                     console.error('Error saving language to IndexedDB');
                     resolve();
                 };
@@ -170,11 +170,11 @@ class I18n {
                 console.error('Error in saveLanguage:', e);
                 resolve();
             }
-        });
+        }.bind(this));
     }
 
     loadLanguage() {
-        return new Promise((resolve, reject) => {
+        return new Promise(function(resolve, reject) {
             if (!this.db) {
                 console.log('Database not ready, using default language');
                 this.currentLanguage = 'en';
@@ -187,7 +187,7 @@ class I18n {
                 const objectStore = transaction.objectStore('settings');
                 const request = objectStore.get('language');
 
-                request.onsuccess = () => {
+                request.onsuccess = function() {
                     if (request.result) {
                         this.currentLanguage = request.result.value;
                         console.log('Language loaded from IndexedDB:', this.currentLanguage);
@@ -196,19 +196,19 @@ class I18n {
                         console.log('No language found in IndexedDB, using default: en');
                     }
                     resolve();
-                };
+                }.bind(this);
 
-                request.onerror = () => {
+                request.onerror = function() {
                     console.error('Error loading language from IndexedDB');
                     this.currentLanguage = 'en';
                     resolve();
-                };
+                }.bind(this);
             } catch (e) {
                 console.error('Error in loadLanguage:', e);
                 this.currentLanguage = 'en';
                 resolve();
             }
-        });
+        }.bind(this));
     }
 
     applyLanguage(lang) {
@@ -223,15 +223,13 @@ class I18n {
         document.getElementById('userModalTitle').textContent = t.selectProfile;
         document.getElementById('createUserBtn').textContent = t.createProfile;
         
-        // Update filter buttons
-        document.querySelectorAll('.filter-btn').forEach((btn, index) => {
+        document.querySelectorAll('.filter-btn').forEach(function(btn, index) {
             const filters = ['all', 'active', 'completed', 'high'];
             const filterKeys = ['allFilter', 'activeFilter', 'completedFilter', 'highPriorityFilter'];
             btn.textContent = t[filterKeys[index]];
         });
         
-        // Update priority select options
-        document.querySelectorAll('#priorityInput option').forEach(option => {
+        document.querySelectorAll('#priorityInput option').forEach(function(option) {
             const key = option.dataset.label + 'Priority';
             option.textContent = t[key];
         });
