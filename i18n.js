@@ -115,16 +115,17 @@ class I18n {
     }
 
     setupLanguageButtons() {
-        document.querySelectorAll('.lang-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        const self = this;
+        document.querySelectorAll('.lang-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
                 const lang = e.target.dataset.lang;
-                this.setLanguage(lang);
+                self.setLanguage(lang);
             });
         });
     }
 
     setActiveButton(lang) {
-        document.querySelectorAll('.lang-btn').forEach(btn => {
+        document.querySelectorAll('.lang-btn').forEach(function(btn) {
             btn.classList.remove('active');
         });
         const activeBtn = document.querySelector('[data-lang="' + lang + '"]');
@@ -145,70 +146,63 @@ class I18n {
     }
 
     saveLanguage(lang) {
-        return new Promise(function(resolve, reject) {
-            if (!this.db) {
-                console.log('Database not ready, skipping language save');
+        const self = this;
+        return new Promise(function(resolve) {
+            if (!self.db) {
                 resolve();
                 return;
             }
 
             try {
-                const transaction = this.db.transaction(['settings'], 'readwrite');
+                const transaction = self.db.transaction(['settings'], 'readwrite');
                 const objectStore = transaction.objectStore('settings');
-                const request = objectStore.put({ key: 'language', value: lang });
+                objectStore.put({ key: 'language', value: lang });
 
-                request.onsuccess = function() {
-                    console.log('Language saved to IndexedDB:', lang);
+                transaction.oncomplete = function() {
                     resolve();
                 };
 
-                request.onerror = function() {
-                    console.error('Error saving language to IndexedDB');
+                transaction.onerror = function() {
                     resolve();
                 };
             } catch (e) {
-                console.error('Error in saveLanguage:', e);
                 resolve();
             }
-        }.bind(this));
+        });
     }
 
     loadLanguage() {
-        return new Promise(function(resolve, reject) {
-            if (!this.db) {
-                console.log('Database not ready, using default language');
-                this.currentLanguage = 'en';
+        const self = this;
+        return new Promise(function(resolve) {
+            if (!self.db) {
+                self.currentLanguage = 'en';
                 resolve();
                 return;
             }
 
             try {
-                const transaction = this.db.transaction(['settings'], 'readonly');
+                const transaction = self.db.transaction(['settings'], 'readonly');
                 const objectStore = transaction.objectStore('settings');
                 const request = objectStore.get('language');
 
                 request.onsuccess = function() {
                     if (request.result) {
-                        this.currentLanguage = request.result.value;
-                        console.log('Language loaded from IndexedDB:', this.currentLanguage);
+                        self.currentLanguage = request.result.value;
                     } else {
-                        this.currentLanguage = 'en';
-                        console.log('No language found in IndexedDB, using default: en');
+                        self.currentLanguage = 'en';
                     }
                     resolve();
-                }.bind(this);
+                };
 
                 request.onerror = function() {
-                    console.error('Error loading language from IndexedDB');
-                    this.currentLanguage = 'en';
+                    self.currentLanguage = 'en';
                     resolve();
-                }.bind(this);
+                };
             } catch (e) {
-                console.error('Error in loadLanguage:', e);
-                this.currentLanguage = 'en';
+                self.currentLanguage = 'en';
                 resolve();
             }
-        }.bind(this));
+        });
     }
 
     applyLanguage(lang) {

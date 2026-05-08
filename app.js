@@ -162,21 +162,25 @@ class TodoApp {
                 return;
             }
 
-            const transaction = self.db.transaction(['users'], 'readwrite');
-            const objectStore = transaction.objectStore('users');
-            objectStore.clear();
+            try {
+                const transaction = self.db.transaction(['users'], 'readwrite');
+                const objectStore = transaction.objectStore('users');
+                objectStore.clear();
 
-            self.users.forEach(function(username) {
-                objectStore.add({ username: username });
-            });
+                self.users.forEach(function(username) {
+                    objectStore.add({ username: username });
+                });
 
-            transaction.oncomplete = function() {
+                transaction.oncomplete = function() {
+                    resolve();
+                };
+
+                transaction.onerror = function() {
+                    resolve();
+                };
+            } catch (e) {
                 resolve();
-            };
-
-            transaction.onerror = function() {
-                resolve();
-            };
+            }
         });
     }
 
@@ -188,19 +192,24 @@ class TodoApp {
                 return;
             }
 
-            const transaction = self.db.transaction(['users'], 'readonly');
-            const objectStore = transaction.objectStore('users');
-            const request = objectStore.getAll();
+            try {
+                const transaction = self.db.transaction(['users'], 'readonly');
+                const objectStore = transaction.objectStore('users');
+                const request = objectStore.getAll();
 
-            request.onsuccess = function() {
-                self.users = request.result.map(function(item) { return item.username; });
-                resolve();
-            };
+                request.onsuccess = function() {
+                    self.users = request.result.map(function(item) { return item.username; });
+                    resolve();
+                };
 
-            request.onerror = function() {
+                request.onerror = function() {
+                    self.users = [];
+                    resolve();
+                };
+            } catch (e) {
                 self.users = [];
                 resolve();
-            };
+            }
         });
     }
 
@@ -212,17 +221,21 @@ class TodoApp {
                 return;
             }
 
-            const transaction = self.db.transaction(['settings'], 'readwrite');
-            const objectStore = transaction.objectStore('settings');
-            objectStore.put({ key: 'lastUser', value: username });
+            try {
+                const transaction = self.db.transaction(['settings'], 'readwrite');
+                const objectStore = transaction.objectStore('settings');
+                objectStore.put({ key: 'lastUser', value: username });
 
-            transaction.oncomplete = function() {
-                resolve();
-            };
+                transaction.oncomplete = function() {
+                    resolve();
+                };
 
-            transaction.onerror = function() {
+                transaction.onerror = function() {
+                    resolve();
+                };
+            } catch (e) {
                 resolve();
-            };
+            }
         });
     }
 
@@ -234,17 +247,21 @@ class TodoApp {
                 return;
             }
 
-            const transaction = self.db.transaction(['settings'], 'readonly');
-            const objectStore = transaction.objectStore('settings');
-            const request = objectStore.get('lastUser');
+            try {
+                const transaction = self.db.transaction(['settings'], 'readonly');
+                const objectStore = transaction.objectStore('settings');
+                const request = objectStore.get('lastUser');
 
-            request.onsuccess = function() {
-                resolve(request.result ? request.result.value : null);
-            };
+                request.onsuccess = function() {
+                    resolve(request.result ? request.result.value : null);
+                };
 
-            request.onerror = function() {
+                request.onerror = function() {
+                    resolve(null);
+                };
+            } catch (e) {
                 resolve(null);
-            };
+            }
         });
     }
 
@@ -354,7 +371,11 @@ class TodoApp {
 
         if (date.toDateString() === today.toDateString()) return '📅 ' + i18n.t('today');
         if (date.toDateString() === tomorrow.toDateString()) return '📅 ' + i18n.t('tomorrow');
-        return '📅 ' + date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return '📅 ' + day + '/' + month + '/' + year;
     }
 
     render() {
@@ -393,32 +414,40 @@ class TodoApp {
                 return;
             }
 
-            const transaction = self.db.transaction(['tasks'], 'readwrite');
-            const objectStore = transaction.objectStore('tasks');
-            const index = objectStore.index('username');
-            const range = IDBKeyRange.only(self.currentUser);
+            try {
+                const transaction = self.db.transaction(['tasks'], 'readwrite');
+                const objectStore = transaction.objectStore('tasks');
+                const index = objectStore.index('username');
+                const range = IDBKeyRange.only(self.currentUser);
 
-            index.openCursor(range).onsuccess = function(event) {
-                const cursor = event.target.result;
-                if (cursor) {
-                    objectStore.delete(cursor.primaryKey);
-                    cursor.continue();
-                }
-            };
+                index.openCursor(range).onsuccess = function(event) {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        objectStore.delete(cursor.primaryKey);
+                        cursor.continue();
+                    }
+                };
 
-            setTimeout(function() {
-                self.tasks.forEach(function(task) {
-                    objectStore.add(task);
-                });
-            }, 50);
+                setTimeout(function() {
+                    self.tasks.forEach(function(task) {
+                        try {
+                            objectStore.add(task);
+                        } catch (e) {
+                            console.error('Error adding task:', e);
+                        }
+                    });
+                }, 100);
 
-            transaction.oncomplete = function() {
+                transaction.oncomplete = function() {
+                    resolve();
+                };
+
+                transaction.onerror = function() {
+                    resolve();
+                };
+            } catch (e) {
                 resolve();
-            };
-
-            transaction.onerror = function() {
-                resolve();
-            };
+            }
         });
     }
 
@@ -427,25 +456,36 @@ class TodoApp {
         return new Promise(function(resolve) {
             if (!self.db || !self.currentUser) {
                 self.tasks = [];
+                self.render();
                 resolve();
                 return;
             }
 
-            const transaction = self.db.transaction(['tasks'], 'readonly');
-            const objectStore = transaction.objectStore('tasks');
-            const index = objectStore.index('username');
-            const range = IDBKeyRange.only(self.currentUser);
-            const request = index.getAll(range);
+            try {
+                const transaction = self.db.transaction(['tasks'], 'readonly');
+                const objectStore = transaction.objectStore('tasks');
+                const index = objectStore.index('username');
+                const range = IDBKeyRange.only(self.currentUser);
+                const request = index.getAll(range);
 
-            request.onsuccess = function() {
-                self.tasks = request.result.sort(function(a, b) { return b.createdAt.localeCompare(a.createdAt); });
-                resolve();
-            };
+                request.onsuccess = function() {
+                    self.tasks = request.result.sort(function(a, b) { 
+                        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                    });
+                    self.render();
+                    resolve();
+                };
 
-            request.onerror = function() {
+                request.onerror = function() {
+                    self.tasks = [];
+                    self.render();
+                    resolve();
+                };
+            } catch (e) {
                 self.tasks = [];
+                self.render();
                 resolve();
-            };
+            }
         });
     }
 
