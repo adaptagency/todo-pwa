@@ -12,14 +12,37 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- User Selection Modal -->
+    <div id="userModal" class="user-modal">
+        <div class="user-modal-content">
+            <h2 id="userModalTitle">Select or Create Profile</h2>
+            <div id="userList" class="user-list"></div>
+            <div class="user-input-section">
+                <input 
+                    type="text" 
+                    id="newUsername" 
+                    placeholder="Enter new username" 
+                    autocomplete="off"
+                >
+                <button id="createUserBtn" class="btn-create-user">Create Profile</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <div class="header-top">
-                <h1 id="appTitle">My To-Do List</h1>
-                <div class="language-toggle">
-                    <button class="lang-btn active" data-lang="en">🇬🇧 EN</button>
-                    <button class="lang-btn" data-lang="vi">🇻🇳 VI</button>
-                    <button class="lang-btn" data-lang="lg">🇺🇬 LG</button>
+                <div class="header-left">
+                    <h1 id="appTitle">My To-Do List</h1>
+                    <p class="user-display" id="userDisplay"></p>
+                </div>
+                <div class="header-right">
+                    <div class="language-toggle">
+                        <button class="lang-btn active" data-lang="en">🇬🇧 EN</button>
+                        <button class="lang-btn" data-lang="vi">🇻🇳 VI</button>
+                        <button class="lang-btn" data-lang="lg">🇺🇬 LG</button>
+                    </div>
+                    <button id="switchUserBtn" class="btn-switch-user">Switch User</button>
                 </div>
             </div>
             <p class="subtitle" id="subtitle">Stay organized and productive</p>

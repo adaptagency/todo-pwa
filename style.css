@@ -38,31 +38,142 @@ body {
     overflow: hidden;
 }
 
+/* User Modal Styles */
+.user-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.3s;
+}
+
+.user-modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease-out;
+}
+
+.user-modal-content h2 {
+    margin-bottom: 20px;
+    color: var(--text-dark);
+    text-align: center;
+}
+
+.user-list {
+    margin-bottom: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.user-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    background: var(--light-bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    font-weight: 500;
+}
+
+.user-item:hover {
+    border-color: var(--primary);
+    background: #e3f2fd;
+}
+
+.user-item.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.user-input-section {
+    display: flex;
+    gap: 10px;
+}
+
+#newUsername {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.3s;
+}
+
+#newUsername:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.btn-create-user {
+    padding: 12px 20px;
+    background: var(--success);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s;
+    white-space: nowrap;
+}
+
+.btn-create-user:hover {
+    background: #45a049;
+}
+
+/* Header Styles */
 header {
     background: linear-gradient(135deg, var(--primary) 0%, #1976D2 100%);
     color: white;
-    padding: 30px 20px;
+    padding: 20px;
 }
 
 .header-top {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
+    align-items: flex-start;
     gap: 16px;
+    margin-bottom: 12px;
+}
+
+.header-left {
+    flex: 1;
+}
+
+.header-right {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 header h1 {
     font-size: 32px;
     font-weight: 700;
-    flex: 1;
+    margin-bottom: 4px;
+}
+
+.user-display {
+    font-size: 12px;
+    opacity: 0.9;
 }
 
 .language-toggle {
     display: flex;
     gap: 6px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
 }
 
 .lang-btn {
@@ -72,7 +183,7 @@ header h1 {
     color: white;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     transition: all 0.3s;
     white-space: nowrap;
@@ -84,6 +195,23 @@ header h1 {
 }
 
 .lang-btn.active {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: white;
+}
+
+.btn-switch-user {
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-switch-user:hover {
     background: rgba(255, 255, 255, 0.3);
     border-color: white;
 }
@@ -224,6 +352,26 @@ header h1 {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
     }
 }
 
@@ -373,15 +521,6 @@ header h1 {
     animation: fadeIn 0.2s;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
 .edit-dialog {
     background: white;
     border-radius: 12px;
@@ -390,17 +529,6 @@ header h1 {
     max-width: 400px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease-out;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(30px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
 }
 
 .edit-dialog h2 {
@@ -471,9 +599,13 @@ header h1 {
         font-size: 24px;
     }
 
-    .language-toggle {
-        justify-content: flex-start;
+    .header-right {
         width: 100%;
+        justify-content: flex-start;
+    }
+
+    .language-toggle {
+        flex-wrap: wrap;
     }
 
     .form-row {
@@ -498,6 +630,10 @@ header h1 {
     .stats {
         flex-direction: column;
         gap: 12px;
+    }
+
+    .user-modal-content {
+        width: 95%;
     }
 }
 

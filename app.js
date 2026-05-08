@@ -2,7 +2,8 @@ class TodoApp {
     constructor() {
         this.tasks = [];
         this.currentFilter = 'all';
-        this.editingId = null;
+        this.currentUser = null;
+        this.users = [];
         this.db = null;
         this.init();
     }
@@ -10,10 +11,21 @@ class TodoApp {
     async init() {
         await i18n.init();
         await this.initIndexedDB();
-        await this.loadTasks();
+        await this.loadUsers();
+        
+        if (this.users.length === 0) {
+            this.showUserModal();
+        } else {
+            const lastUser = await this.getLastUser();
+            if (lastUser) {
+                this.setCurrentUser(lastUser);
+            } else {
+                this.showUserModal();
+            }
+        }
+
         this.setupEventListeners();
         this.registerServiceWorker();
-        this.render();
     }
 
     initIndexedDB() {
@@ -36,10 +48,16 @@ class TodoApp {
                 
                 if (!db.objectStoreNames.contains('tasks')) {
                     const objectStore = db.createObjectStore('tasks', { keyPath: 'id' });
+                    objectStore.createIndex('username', 'username', { unique: false });
                     objectStore.createIndex('completed', 'completed', { unique: false });
                     objectStore.createIndex('priority', 'priority', { unique: false });
                     objectStore.createIndex('createdAt', 'createdAt', { unique: false });
-                    console.log('Object store created');
+                    console.log('Tasks object store created');
+                }
+
+                if (!db.objectStoreNames.contains('users')) {
+                    db.createObjectStore('users', { keyPath: 'username' });
+                    console.log('Users object store created');
                 }
 
                 if (!db.objectStoreNames.contains('settings')) {
@@ -55,6 +73,12 @@ class TodoApp {
             if (e.key === 'Enter') this.addTask();
         });
         document.getElementById('clearBtn').addEventListener('click', () => this.clearCompleted());
+        document.getElementById('switchUserBtn').addEventListener('click', () => this.showUserModal());
+        document.getElementById('createUserBtn').addEventListener('click', () => this.createNewUser());
+        
+        document.getElementById('newUsername').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.createNewUser();
+        });
 
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -63,6 +87,153 @@ class TodoApp {
                 this.currentFilter = e.target.dataset.filter;
                 this.render();
             });
+        });
+    }
+
+    showUserModal() {
+        const modal = document.getElementById('userModal');
+        const userList = document.getElementById('userList');
+        
+        userList.innerHTML = '';
+        this.users.forEach(username => {
+            const userItem = document.createElement('div');
+            userItem.className = 'user-item';
+            if (this.currentUser === username) {
+                userItem.classList.add('active');
+            }
+            userItem.textContent = username;
+            userItem.addEventListener('click', () => {
+                this.setCurrentUser(username);
+                this.saveLastUser(username);
+                modal.style.display = 'none';
+            });
+            userList.appendChild(userItem);
+        });
+        
+        document.getElementById('newUsername').value = '';
+        modal.style.display = 'flex';
+    }
+
+    createNewUser() {
+        const username = document.getElementById('newUsername').value.trim();
+        
+        if (!username) {
+            alert('Please enter a username');
+            return;
+        }
+        
+        if (this.users.includes(username)) {
+            alert('Username already exists');
+            return;
+        }
+        
+        this.users.push(username);
+        this.saveUsers();
+        this.setCurrentUser(username);
+        this.saveLastUser(username);
+        document.getElementById('userModal').style.display = 'none';
+    }
+
+    async setCurrentUser(username) {
+        this.currentUser = username;
+        document.getElementById('userDisplay').textContent = `User: ${username}`;
+        await this.loadTasks();
+        this.render();
+    }
+
+    saveUsers() {
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                reject(new Error('IndexedDB not initialized'));
+                return;
+            }
+
+            const transaction = this.db.transaction(['users'], 'readwrite');
+            const objectStore = transaction.objectStore('users');
+            
+            objectStore.clear();
+            this.users.forEach(username => {
+                objectStore.add({ username });
+            });
+
+            transaction.oncomplete = () => {
+                console.log('Users saved to IndexedDB');
+                resolve();
+            };
+
+            transaction.onerror = () => {
+                reject(transaction.error);
+            };
+        });
+    }
+
+    loadUsers() {
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                reject(new Error('IndexedDB not initialized'));
+                return;
+            }
+
+            const transaction = this.db.transaction(['users'], 'readonly');
+            const objectStore = transaction.objectStore('users');
+            const request = objectStore.getAll();
+
+            request.onsuccess = () => {
+                this.users = request.result.map(item => item.username);
+                console.log('Users loaded from IndexedDB:', this.users);
+                resolve();
+            };
+
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
+    }
+
+    saveLastUser(username) {
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                reject(new Error('IndexedDB not initialized'));
+                return;
+            }
+
+            const transaction = this.db.transaction(['settings'], 'readwrite');
+            const objectStore = transaction.objectStore('settings');
+            const request = objectStore.put({ key: 'lastUser', value: username });
+
+            request.onsuccess = () => {
+                console.log('Last user saved:', username);
+                resolve();
+            };
+
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
+    }
+
+    getLastUser() {
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                reject(new Error('IndexedDB not initialized'));
+                return;
+            }
+
+            const transaction = this.db.transaction(['settings'], 'readonly');
+            const objectStore = transaction.objectStore('settings');
+            const request = objectStore.get('lastUser');
+
+            request.onsuccess = () => {
+                if (request.result) {
+                    resolve(request.result.value);
+                } else {
+                    resolve(null);
+                }
+            };
+
+            request.onerror = () => {
+                reject(request.error);
+            };
         });
     }
 
@@ -78,6 +249,7 @@ class TodoApp {
 
         const task = {
             id: Date.now(),
+            username: this.currentUser,
             text,
             date: date || null,
             priority,
@@ -244,14 +416,24 @@ class TodoApp {
             const transaction = this.db.transaction(['tasks'], 'readwrite');
             const objectStore = transaction.objectStore('tasks');
 
-            objectStore.clear();
+            // Clear only current user's tasks
+            const index = objectStore.index('username');
+            const range = IDBKeyRange.only(this.currentUser);
+            index.openCursor(range).onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    objectStore.delete(cursor.primaryKey);
+                    cursor.continue();
+                }
+            };
 
+            // Add all current tasks
             this.tasks.forEach(task => {
                 objectStore.add(task);
             });
 
             transaction.oncomplete = () => {
-                console.log('Tasks saved to IndexedDB');
+                console.log('Tasks saved to IndexedDB for user:', this.currentUser);
                 resolve();
             };
 
@@ -272,11 +454,13 @@ class TodoApp {
 
             const transaction = this.db.transaction(['tasks'], 'readonly');
             const objectStore = transaction.objectStore('tasks');
-            const request = objectStore.getAll();
+            const index = objectStore.index('username');
+            const range = IDBKeyRange.only(this.currentUser);
+            const request = index.getAll(range);
 
             request.onsuccess = () => {
                 this.tasks = request.result.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-                console.log('Tasks loaded from IndexedDB:', this.tasks.length);
+                console.log('Tasks loaded from IndexedDB for user:', this.currentUser, this.tasks.length);
                 resolve();
             };
 

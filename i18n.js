@@ -26,7 +26,10 @@ const translations = {
         today: 'Today',
         tomorrow: 'Tomorrow',
         taskCount: 'tasks',
-        task: 'task'
+        task: 'task',
+        selectProfile: 'Select or Create Profile',
+        switchUser: 'Switch User',
+        createProfile: 'Create Profile'
     },
     vi: {
         appTitle: 'Danh Sách Việc Cần Làm',
@@ -55,7 +58,10 @@ const translations = {
         today: 'Hôm Nay',
         tomorrow: 'Ngày Mai',
         taskCount: 'nhiệm vụ',
-        task: 'nhiệm vụ'
+        task: 'nhiệm vụ',
+        selectProfile: 'Chọn hoặc Tạo Hồ Sơ',
+        switchUser: 'Chuyển Người Dùng',
+        createProfile: 'Tạo Hồ Sơ'
     },
     lg: {
         appTitle: 'Omusomo Gwa To-Do',
@@ -84,7 +90,10 @@ const translations = {
         today: 'Leero',
         tomorrow: 'Bukiluki',
         taskCount: 'mirimú',
-        task: 'omusomo'
+        task: 'omusomo',
+        selectProfile: 'Pili oba Tengeneza Profayiro',
+        switchUser: 'Kyusa Muntu',
+        createProfile: 'Tengeneza Profayiro'
     }
 };
 
@@ -222,6 +231,9 @@ class I18n {
         document.getElementById('taskInput').placeholder = t.taskPlaceholder;
         document.getElementById('addBtn').textContent = t.addBtn;
         document.getElementById('clearBtn').textContent = t.clearBtn;
+        document.getElementById('switchUserBtn').textContent = t.switchUser;
+        document.getElementById('userModalTitle').textContent = t.selectProfile;
+        document.getElementById('createUserBtn').textContent = t.createProfile;
         
         // Update filter buttons
         document.querySelectorAll('.filter-btn').forEach((btn, index) => {
