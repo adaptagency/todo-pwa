@@ -8,6 +8,7 @@ class TodoApp {
     }
 
     async init() {
+        await i18n.init();
         await this.initIndexedDB();
         await this.loadTasks();
         this.setupEventListeners();
@@ -33,13 +34,16 @@ class TodoApp {
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
                 
-                // Create object store if it doesn't exist
                 if (!db.objectStoreNames.contains('tasks')) {
                     const objectStore = db.createObjectStore('tasks', { keyPath: 'id' });
                     objectStore.createIndex('completed', 'completed', { unique: false });
                     objectStore.createIndex('priority', 'priority', { unique: false });
                     objectStore.createIndex('createdAt', 'createdAt', { unique: false });
                     console.log('Object store created');
+                }
+
+                if (!db.objectStoreNames.contains('settings')) {
+                    db.createObjectStore('settings', { keyPath: 'key' });
                 }
             };
         });
@@ -240,10 +244,8 @@ class TodoApp {
             const transaction = this.db.transaction(['tasks'], 'readwrite');
             const objectStore = transaction.objectStore('tasks');
 
-            // Clear all existing tasks
             objectStore.clear();
 
-            // Add all current tasks
             this.tasks.forEach(task => {
                 objectStore.add(task);
             });
