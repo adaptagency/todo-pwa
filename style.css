@@ -147,23 +147,29 @@ header {
     align-items: flex-start;
     gap: 16px;
     margin-bottom: 12px;
+    min-height: 70px;
 }
 
 .header-left {
     flex: 1;
+    min-width: 0;
 }
 
 .header-right {
     display: flex;
-    gap: 12px;
+    flex-direction: column;
+    gap: 8px;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    align-items: flex-end;
+    flex-shrink: 0;
 }
 
 header h1 {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
     margin-bottom: 4px;
+    word-break: break-word;
 }
 
 .user-display {
@@ -177,13 +183,13 @@ header h1 {
 }
 
 .lang-btn {
-    padding: 8px 12px;
+    padding: 8px 10px;
     border: 2px solid rgba(255, 255, 255, 0.5);
     background: transparent;
     color: white;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     transition: all 0.3s;
     white-space: nowrap;
@@ -200,15 +206,16 @@ header h1 {
 }
 
 .btn-switch-user {
-    padding: 8px 14px;
+    padding: 8px 12px;
     background: rgba(255, 255, 255, 0.2);
     color: white;
     border: 2px solid rgba(255, 255, 255, 0.5);
     border-radius: 6px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     transition: all 0.3s;
+    white-space: nowrap;
 }
 
 .btn-switch-user:hover {
@@ -589,10 +596,15 @@ header h1 {
     background: var(--border);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
     .header-top {
         flex-direction: column;
-        align-items: flex-start;
+        min-height: auto;
+        gap: 12px;
+    }
+
+    .header-left {
+        width: 100%;
     }
 
     header h1 {
@@ -601,11 +613,17 @@ header h1 {
 
     .header-right {
         width: 100%;
-        justify-content: flex-start;
+        align-items: flex-start;
     }
 
     .language-toggle {
-        flex-wrap: wrap;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .btn-switch-user {
+        width: 100%;
+        text-align: center;
     }
 
     .form-row {
