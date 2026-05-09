@@ -32,7 +32,7 @@ const translations = {
         createProfile: 'Create Profile'
     },
     vi: {
-        appTitle: 'Danh Sách Việc Cần Làm',
+        appTitle: 'Danh Sách Việc',
         subtitle: 'Luôn được tổ chức và năng suất',
         taskPlaceholder: 'Cần phải làm gì?',
         addBtn: 'Thêm Nhiệm Vụ',
