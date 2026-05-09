@@ -142,10 +142,9 @@ header {
     background: linear-gradient(135deg, var(--primary) 0%, #1976D2 100%);
     color: white;
     padding: 20px 20px 12px 20px;
-    min-height: 110px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    gap: 16px;
 }
 
 .header-top {
@@ -153,7 +152,6 @@ header {
     justify-content: space-between;
     align-items: flex-start;
     gap: 12px;
-    min-height: 60px;
 }
 
 .header-left {
@@ -167,10 +165,8 @@ header {
 .header-right {
     display: flex;
     gap: 8px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    min-height: 60px;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-end;
 }
 
 header h1 {
@@ -241,7 +237,6 @@ header h1 {
     opacity: 0.9;
     text-align: center;
     line-height: 1.2;
-    min-height: 18px;
 }
 
 .input-section {
@@ -613,25 +608,31 @@ header h1 {
 
 @media (max-width: 480px) {
     header {
-        min-height: 100px;
-        padding: 15px 16px 10px 16px;
-    }
-
-    header h1 {
-        font-size: 20px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        gap: 12px;
+        padding: 20px 16px 12px 16px;
     }
 
     .header-top {
-        min-height: 55px;
-        gap: 8px;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .header-left {
+        width: 100%;
     }
 
     .header-right {
-        gap: 6px;
-        min-height: 50px;
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    header h1 {
+        font-size: 22px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .language-toggle {
@@ -678,6 +679,13 @@ header h1 {
 
     .user-modal-content {
         width: 95%;
+    }
+}
+
+@media (min-width: 481px) {
+    .header-right {
+        flex-direction: row;
+        align-items: center;
     }
 }
 
